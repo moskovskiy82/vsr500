@@ -3,12 +3,16 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    UnitOfTemperature,
+    UnitOfPressure,
+    UnitOfVolume,
+    UnitOfMass,
+    UnitOfEnergy,
+    UnitOfTime,
     PERCENTAGE,
     REVOLUTIONS_PER_MINUTE,
-    TIME_MONTHS,
-    TIME_SECONDS,
 )
+
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -32,10 +36,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SAVEVSRSensor(hub, "Sensor Flow Piggyback EAF", "vsr_sensor_flow_piggyback_eaf", None, SensorStateClass.MEASUREMENT, None, "sensor_flow_piggyback_eaf"),
         SAVEVSRSensor(hub, "Mode Speed", "vsr_mode_speed", None, SensorStateClass.MEASUREMENT, None, "mode_speed"),
         SAVEVSRSensor(hub, "Mode Main", "vsr_mode_main", None, SensorStateClass.MEASUREMENT, None, "mode_main"),
-        SAVEVSRSensor(hub, "Temp Outdoor", "vsr_temp_outdoor", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, TEMP_CELSIUS, "temp_outdoor"),
-        SAVEVSRSensor(hub, "Temp Supply", "vsr_temp_supply", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, TEMP_CELSIUS, "temp_supply"),
-        SAVEVSRSensor(hub, "Temp Extract", "vsr_temp_extract", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, TEMP_CELSIUS, "temp_extract"),
-        SAVEVSRSensor(hub, "Temp Overheat", "vsr_temp_overheat", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, TEMP_CELSIUS, "temp_overheat"),
+        SAVEVSRSensor(hub, "Temp Outdoor", "vsr_temp_outdoor", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_outdoor"),
+        SAVEVSRSensor(hub, "Temp Supply", "vsr_temp_supply", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_supply"),
+        SAVEVSRSensor(hub, "Temp Extract", "vsr_temp_extract", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_extract"),
+        SAVEVSRSensor(hub, "Temp Overheat", "vsr_temp_overheat", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_overheat"),
         SAVEVSRSensor(hub, "Humidity", "vsr_humidity", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity"),
         SAVEVSRSensor(hub, "SAF RPM", "vsr_saf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "saf_rpm"),
         SAVEVSRSensor(hub, "EAF RPM", "vsr_eaf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "eaf_rpm"),
