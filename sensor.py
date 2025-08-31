@@ -25,6 +25,8 @@ UNIT_PRESSURE_PA = "Pa"
 UNIT_CO2_PPM = "ppm"
 UNIT_SFP = "W/m³/h"
 UNIT_KWH = "kWh"
+# TIME_MONTHS = "months"  # Define the missing constant here**
+# TIME_SECONDS = "s"      # And this one as well**
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Set up SAVE VSR sensors based on a config entry."""
@@ -43,8 +45,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SAVEVSRSensor(hub, "Humidity", "vsr_humidity", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity"),
         SAVEVSRSensor(hub, "SAF RPM", "vsr_saf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "saf_rpm"),
         SAVEVSRSensor(hub, "EAF RPM", "vsr_eaf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "eaf_rpm"),
-        SAVEVSRSensor(hub, "Filter Replace Month", "vsr_filter_replace_month", None, SensorStateClass.MEASUREMENT, TIME_MONTHS, "filter_replace_month"),
-        SAVEVSRSensor(hub, "Filter Replace Seconds", "vsr_filter_replace_seconds", None, SensorStateClass.MEASUREMENT, TIME_SECONDS, "filter_replace_seconds"),
+        # SAVEVSRSensor(hub, "Filter Replace Month", "vsr_filter_replace_month", None, SensorStateClass.MEASUREMENT, TIME_MONTHS, "filter_replace_month"),
+        # SAVEVSRSensor(hub, "Filter Replace Seconds", "vsr_filter_replace_seconds", None, SensorStateClass.MEASUREMENT, TIME_SECONDS, "filter_replace_seconds"),
         SAVEVSRSensor(hub, "Filter Pressure", "vsr_filter_pressure", SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, UNIT_PRESSURE_PA, "filter_pressure"),
         SAVEVSRSensor(hub, "CO2 Level", "vsr_co2_level", SensorDeviceClass.CO2, SensorStateClass.MEASUREMENT, UNIT_CO2_PPM, "co2_level"),
         SAVEVSRSensor(hub, "SFP Supply", "vsr_sfp_supply", None, SensorStateClass.MEASUREMENT, UNIT_SFP, "sfp_supply"),
