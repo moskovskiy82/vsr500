@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDEs/editors
+.vscode/
+.idea/
+
+# Home Assistant / local exports
+secrets.yaml
+vsr.txt
+
+# Keys
+*.pem
+*.key
+
+# macOS
+.DS_Store

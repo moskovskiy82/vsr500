@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Systemair SAVE VSR",
+        "data": {
+          "port": "Port",
+          "baudrate": "Baudrate",
+          "stopbits": "Stop Bits",
+          "bytesize": "Byte Size",
+          "parity": "Parity"
+        }
+      }
+    }
+  }
+}
