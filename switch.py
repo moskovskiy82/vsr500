@@ -1,4 +1,4 @@
-"""Switch platform for Systemair SAVE VSR."""
+""Switch platform for Systemair SAVE VSR."""
 from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
@@ -7,25 +7,25 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SLAVE_ID
-from .__init__ import VSR500Hub
+from .__init__ import SAVEVSRHub
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    hub: VSR500Hub = hass.data[DOMAIN][entry.entry_id]
+    hub: SAVEVSRHub = hass.data[DOMAIN][entry.entry_id]
     entities = [
-        VSR500Switch(hub, "ECO Mode", "vsr_eco_modus", "eco_modus", 1, 0, 2504),
-        VSR500Switch(hub, "Heater Switch", "vsr_heater_switch", "heater_switch", 1, 0, 3001),
-        VSR500Switch(hub, "RH Switch", "vsr_rh_switch", "rh_switch", 1, 0, 2203),
+        SAVEVSRSwitch(hub, "ECO Mode", "vsr_eco_modus", "eco_modus", 1, 0, 2504),
+        SAVEVSRSwitch(hub, "Heater Switch", "vsr_heater_switch", "heater_switch", 1, 0, 3001),
+        SAVEVSRSwitch(hub, "RH Switch", "vsr_rh_switch", "rh_switch", 1, 0, 2203),
     ]
     async_add_entities(entities)
 
 
-class VSR500Switch(CoordinatorEntity, SwitchEntity):
-    """VSR500 switch using Modbus writes."""
+class SAVEVSRSwitch(CoordinatorEntity, SwitchEntity):
+    """SAVE VSR switch using Modbus writes."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
 
-    def __init__(self, hub: VSR500Hub, name: str, unique_id: str, key: str, command_on: int, command_off: int, verify_address: int) -> None:
+    def __init__(self, hub: SAVEVSRHub, name: str, unique_id: str, key: str, command_on: int, command_off: int, verify_address: int) -> None:
         super().__init__(hub.coordinator)
         self.hub = hub
         self._attr_name = name

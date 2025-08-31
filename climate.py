@@ -8,27 +8,26 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SLAVE_ID
-from .__init__ import VSR500Hub
+from .__init__ import SAVEVSRHub
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    hub: VSR500Hub = hass.data[DOMAIN][entry.entry_id]
+    hub: SAVEVSRHub = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([SAVEVSRClimate(hub)])
 
 
-class SAVEVSRClimate(CoordinatorEntity[VSR500Hub], ClimateEntity):
+class SAVEVSRClimate(CoordinatorEntity[SAVEVSRHub], ClimateEntity):
     """SAVE VSR climate entity."""
 
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.PRESET_MODE
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.AUTO, HVACMode.FAN_ONLY]
     _attr_fan_modes = ["low", "medium", "high"]
-    _attr_preset_modes = ["fireplace", "crowded", "refresh", "away", "holiday", "kitchen", "vacuum_cleaner"]
+    _attr_preset_modes = ["crowded", "refresh", "fireplace", "away", "holiday", "kitchen", "vacuum_cleaner"]
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_name = "Vent SAVE VSR"
     _attr_unique_id = "vsr_vent_SAVE_VSR"
-    _attr_icon = "mdi:fan"
 
-    def __init__(self, hub: VSR500Hub) -> None:
+    def __init__(self, hub: SAVEVSRHub) -> None:
         super().__init__(hub.coordinator)
         self.hub = hub
         self._attr_device_info = hub.device_info
@@ -53,34 +52,8 @@ class SAVEVSRClimate(CoordinatorEntity[VSR500Hub], ClimateEntity):
         return HVACMode.OFF
 
     @property
-    def preset_mode(self):
-        mode = self.coordinator.data.get("mode_main")
-        mapping = {
-            4: "fireplace",
-            2: "crowded",
-            3: "refresh",
-            5: "away",
-            6: "holiday",
-            7: "kitchen",
-            8: "vacuum_cleaner",
-        }
-        return mapping.get(mode, None)
-
-    async def async_set_preset_mode(self, preset_mode: str):
-        mapping = {
-            "fireplace": 5,
-            "crowded": 3,
-            "refresh": 4,
-            "away": 6,
-            "holiday": 7,
-            "kitchen": 8,
-            "vacuum_cleaner": 9,
-        }
-        value = mapping.get(preset_mode)
-        if value is None:
-            return
-        if await self.hub.async_write_register(1161, value, slave=SLAVE_ID):
-            await self.coordinator.async_request_refresh()
+    def hvac_action(self):
+        return "Ventilation" if self.hvac_mode != HVACMode.OFF else "Idle"
 
     async def async_set_hvac_mode(self, hvac_mode: str):
         value: int | None = None
@@ -123,8 +96,31 @@ class SAVEVSRClimate(CoordinatorEntity[VSR500Hub], ClimateEntity):
             await self.coordinator.async_request_refresh()
 
     @property
-    def hvac_action(self):
-        # Custom text "Ventilation" for active state
-        if self.hvac_mode != HVACMode.OFF:
-            return "Ventilation"
-        return "Idle"
+    def preset_mode(self):
+        mode = self.coordinator.data.get("mode_main")
+        mapping = {
+            2: "crowded",
+            3: "refresh",
+            4: "fireplace",
+            5: "away",
+            6: "holiday",
+            7: "kitchen",
+            8: "vacuum_cleaner",
+        }
+        return mapping.get(mode, None)
+
+    async def async_set_preset_mode(self, preset_mode: str):
+        mapping = {
+            "crowded": 3,
+            "refresh": 4,
+            "fireplace": 5,
+            "away": 6,
+            "holiday": 7,
+            "kitchen": 8,
+            "vacuum_cleaner": 9,
+        }
+        value = mapping.get(preset_mode)
+        if value is None:
+            return
+        if await self.hub.async_write_register(1161, value, slave=SLAVE_ID):
+            await self.coordinator.async_request_refresh()
