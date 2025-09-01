@@ -1,6 +1,7 @@
 """The Systemair SAVE VSR integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 
@@ -224,8 +225,17 @@ class SAVEVSRHub:
         """Async write single register."""
         try:
             await self._ensure_connected()
-            wr = await self.client.write_register(address, value, slave=slave)
-            return not wr.isError()
+            wr = await asyncio.wait_for(self.client.write_register(address, value, slave=slave), timeout=3.0)
+            if wr.isError():
+                _LOGGER.error("Modbus write error at address %s", address)
+                return False
+            return True
+        except asyncio.TimeoutError:
+            _LOGGER.error("Modbus write timeout at address %s (no response for 3 seconds)", address)
+            return False
+        except ModbusException as err:
+            _LOGGER.error("Modbus exception during write at address %s: %s", address, err)
+            return False
         except Exception as err:
-            _LOGGER.error("Write failed (addr=%s, val=%s): %s", address, value, err)
+            _LOGGER.error("Unexpected error during write at address %s: %s", address, err)
             return False

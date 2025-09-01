@@ -43,15 +43,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SAVEVSRSensor(hub, "Temp Extract", "vsr_temp_extract", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_extract"),
         SAVEVSRSensor(hub, "Temp Overheat", "vsr_temp_overheat", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "temp_overheat"),
         SAVEVSRSensor(hub, "Humidity", "vsr_humidity", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity"),
-        SAVEVSRSensor(hub, "SAF RPM", "vsr_saf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "saf_rpm"),
-        SAVEVSRSensor(hub, "EAF RPM", "vsr_eaf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "eaf_rpm"),
+        SAVEVSRSensor(hub, "Humidity Exhaust", "vsr_humidity_exhaust", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity_exhaust"),
+        SAVEVSRSensor(hub, "Humidity Intake", "vsr_humidity_intake", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity_intake"),
+        SAVEVSRSensor(hub, "Setpoint RH Transfer", "vsr_setpoint_RH_transfer", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "setpoint_RH_transfer"),
+        SAVEVSRSensor(hub, "Humidity Return Value", "vsr_humidity_return_value", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, PERCENTAGE, "humidity_return_value"),
+		
+        SAVEVSRSensor(hub, "FAN SAF", "vsr_saf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "saf_rpm"),
+        SAVEVSRSensor(hub, "FAN EAF", "vsr_eaf_rpm", None, SensorStateClass.MEASUREMENT, REVOLUTIONS_PER_MINUTE, "eaf_rpm"),
+		
+        SAVEVSRSensor(hub, "Fan Supply", "vsr_fan_supply", SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, PERCENTAGE, "fan_supply"),
+        SAVEVSRSensor(hub, "Fan Extract", "vsr_fan_extract", SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, PERCENTAGE, "fan_extract"),
+		
+        SAVEVSRSensor(hub, "Heat Exchanger State", "vsr_heat_exchanger_state", SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, PERCENTAGE, "heat_exchanger_state"),
+        SAVEVSRSensor(hub, "Rotor", "vsr_rotor", SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, PERCENTAGE, "rotor"),
+        SAVEVSRSensor(hub, "Heater", "vsr_heater", SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, PERCENTAGE, "heater"),		
+		
+		
         # SAVEVSRSensor(hub, "Filter Replace Month", "vsr_filter_replace_month", None, SensorStateClass.MEASUREMENT, TIME_MONTHS, "filter_replace_month"),
         # SAVEVSRSensor(hub, "Filter Replace Seconds", "vsr_filter_replace_seconds", None, SensorStateClass.MEASUREMENT, TIME_SECONDS, "filter_replace_seconds"),
+		
+		
+        SAVEVSRSensor(hub, "Setpoint ECO Offset", "vsr_setpoint_eco_offset", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "setpoint_eco_offset"),
+        # SAVEVSRSensor(hub, "Usermode Remain Time", "vsr_usermode_remain_time", None, SensorStateClass.MEASUREMENT, TIME_SECONDS, "usermode_remain_time"),
+        SAVEVSRSensor(hub, "Cooling Recovery Temp", "vsr_cooling_recovery_temp", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "cooling_recovery_temp"),		
+		
         SAVEVSRSensor(hub, "Filter Pressure", "vsr_filter_pressure", SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, UNIT_PRESSURE_PA, "filter_pressure"),
         SAVEVSRSensor(hub, "CO2 Level", "vsr_co2_level", SensorDeviceClass.CO2, SensorStateClass.MEASUREMENT, UNIT_CO2_PPM, "co2_level"),
         SAVEVSRSensor(hub, "SFP Supply", "vsr_sfp_supply", None, SensorStateClass.MEASUREMENT, UNIT_SFP, "sfp_supply"),
         SAVEVSRSensor(hub, "Energy Consumption", "vsr_energy_consumption", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UNIT_KWH, "energy_consumption"),
-        # ...add all other sensors using the same pattern
     ]
 
     async_add_entities(sensors)

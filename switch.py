@@ -15,11 +15,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     hub: SAVEVSRHub = hass.data[DOMAIN][entry.entry_id]
 
     entities = [
-        # The 'verify' address is the same as the command address for these
         SAVEVSRSwitch(hub, "ECO Mode", "vsr_eco_modus", 2504, 1, 0, "eco_modus"),
         SAVEVSRSwitch(hub, "Heater Switch", "vsr_heater_switch", 3001, 1, 0, "heater_switch"),
-        # The 'verify' address is different from the command address for this one
-        SAVEVSRSwitch(hub, "RH Switch", "vsr_rh_switch", 2203, 1, 0, "rh_switch"), # The key is 'rh_switch', and the `is_on` property will read from this key
+        SAVEVSRSwitch(hub, "RH Switch", "vsr_rh_switch", 2203, 1, 0, "humidity_transfer_enabled"),  # Updated verify_key to match command address
     ]
     async_add_entities(entities)
 
@@ -37,7 +35,7 @@ class SAVEVSRSwitch(CoordinatorEntity, SwitchEntity):
         command_address: int,
         command_on: int,
         command_off: int,
-        verify_key: str, # Use a key from the coordinator's data
+        verify_key: str,
     ) -> None:
         super().__init__(hub.coordinator)
         self.hub = hub
@@ -55,19 +53,14 @@ class SAVEVSRSwitch(CoordinatorEntity, SwitchEntity):
         data = self.coordinator.data
         if not data:
             return None
-        # Use the verify_key to check the state
         return bool(data.get(self._verify_key, False))
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the switch on by writing to the command address."""
-        await self.hub.async_write_register(
-            self._command_address, self._command_on
-        )
-        await self.coordinator.async_request_refresh()
+        if await self.hub.async_write_register(self._command_address, self._command_on):
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the switch off by writing to the command address."""
-        await self.hub.async_write_register(
-            self._command_address, self._command_off
-        )
-        await self.coordinator.async_request_refresh()
+        if await self.hub.async_write_register(self._command_address, self._command_off):
+            await self.coordinator.async_request_refresh()
