@@ -1,8 +1,8 @@
 """The Systemair SAVE VSR integration."""
 from __future__ import annotations
 
-import asyncio
 import logging
+import asyncio
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -41,7 +41,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hub: SAVEVSRHub = hass.data[DOMAIN].pop(entry.entry_id)
-        hub.client.close()  # Close without await
+        if hub.client is not None:  # Check for None before closing
+            hub.client.close()  # Close without await
     return unload_ok
 
 async def async_get_device_diagnostics(
@@ -49,10 +50,12 @@ async def async_get_device_diagnostics(
 ) -> dict:
     hub: SAVEVSRHub = hass.data[DOMAIN][entry.entry_id]
     data = hub.coordinator.data or {}
-    diagnostics = {k: v for k, v in data.items() if k.startswith("alarm_")}
+    diagnostics = {
+        "alarm_typeA": data.get("alarm_typeA", False),
+        "alarm_typeB": data.get("alarm_typeB", False),
+        "alarm_typeC": data.get("alarm_typeC", False),
+    }
     return diagnostics
-
-
 
 class SAVEVSRHub:
     """Hub for Systemair SAVE VSR Modbus communication."""
@@ -94,132 +97,178 @@ class SAVEVSRHub:
 
     async def _ensure_connected(self) -> None:
         """Connect client if not connected."""
+        if self.client is None:
+            _LOGGER.error("Modbus client is None, reinitializing")
+            self.client = AsyncModbusSerialClient(
+                port=self.entry.data["port"],
+                baudrate=self.entry.data["baudrate"],
+                stopbits=self.entry.data["stopbits"],
+                bytesize=self.entry.data["bytesize"],
+                parity=self.entry.data["parity"],
+                method="rtu",
+            )
         if not self.client.connected:
             _LOGGER.debug("Connecting to Systemair SAVE VSR Modbus RTU...")
-            connected = await self.client.connect()
-            if not connected:
-                raise UpdateFailed("Failed to connect to Systemair SAVE VSR")
+            try:
+                connected = await asyncio.wait_for(self.client.connect(), timeout=5.0)
+                if not connected:
+                    _LOGGER.error("Failed to connect to Systemair SAVE VSR")
+                    raise UpdateFailed("Failed to connect to Systemair SAVE VSR")
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timeout connecting to Systemair SAVE VSR")
+                raise UpdateFailed("Timeout connecting to Systemair SAVE VSR")
+            except Exception as err:
+                _LOGGER.error("Unexpected error connecting to Systemair SAVE VSR: %s", err)
+                raise UpdateFailed(f"Unexpected error connecting: {err}")
 
     async def _async_update_data(self) -> dict:
         """Fetch data from the VSR unit."""
-        await self._ensure_connected()
-        data = {}
         try:
-            # Define registers to read (simplified for demonstration)
-            registers = {
-                "temp_supply": (12102, "input", 0.1),
-                "target_temp": (2000, "holding", 0.1),
-                "mode_main": (1160, "input", 1),
-                "mode_speed": (1130, "input", 1),       
-                "damper_state": (14003, "holding", 1),
-                "cooldown": (1351, "holding", 1),
-                "humidity_return": (2146, "holding", 1),
-                "humidity_transfer_enabled": (2203, "holding", 1),
-                "mode_summerwinter": (1038, "holding", 1),
-                "fan_running": (1350, "holding", 1),
-                "cooling_recovery": (2133, "holding", 1),
-                # Switches              
-                "eco_modus": (2504, "holding", 1, "bool"),
-                "heater_switch": (3001, "holding", 1, "bool"),
-                "rh_switch": (2146, "holding", 1, "bool"),
-                # Alarms
-                "alarm_typeA": (15900, "holding", 1),
-                "alarm_typeB": (15901, "holding", 1),
-                "alarm_typeC": (15902, "holding", 1),
-                "alarm_saf": (15001, "holding", 1),
-                "alarm_fire": (15536, "holding", 1),
-                "alarm_eaf": (15008, "holding", 1),
-                "alarm_saf_rpm": (15029, "holding", 1),
-                "alarm_eaf_rpm": (15036, "holding", 1),
-                "alarm_fpt": (15057, "holding", 1),
-                "alarm_oat": (15064, "holding", 1),
-                "alarm_sat": (15071, "holding", 1),
-                "alarm_rat": (15078, "holding", 1),
-                "alarm_eat": (15085, "holding", 1),
-                "alarm_ect": (15092, "holding", 1),
-                "alarm_eft": (15099, "holding", 1),
-                "alarm_oht": (15106, "holding", 1),
-                "alarm_emt": (15113, "holding", 1),
-                "alarm_bys": (15127, "holding", 1),
-                "alarm_sec_air": (15134, "holding", 1),
-                "alarm_rh": (15162, "holding", 1),
-                "alarm_frost_protect": (15015, "holding", 1),
-                "alarm_defrosting": (15022, "holding", 1),
-                "alarm_low_SAT": (15176, "holding", 1),
-                "alarm_pdm_rhs": (15508, "holding", 1),
-                "alarm_pdm_eat": (15515, "holding", 1),
-                "alarm_man_fan_stop": (15522, "holding", 1),
-                "alarm_overheat_temp": (15529, "holding", 1),
-                "alarm_filter": (15141, "holding", 1),
-                "alarm_filter_warn": (15543, "holding", 1),
+            await self._ensure_connected()
+            data = {}
+            
+            # Batch read registers where possible to reduce communication overhead
+            register_batches = [
+                # Climate (input registers)
+                {"type": "input", "start": 1160, "count": 1, "keys": ["mode_main"], "scales": [1]},
+                {"type": "input", "start": 12102, "count": 1, "keys": ["temp_supply"], "scales": [0.1]},
+                # Climate (holding registers)
+                {"type": "holding", "start": 1130, "count": 1, "keys": ["mode_speed"], "scales": [1]},
+                {"type": "holding", "start": 2000, "count": 1, "keys": ["target_temp"], "scales": [0.1]},
+                # Binary sensors and switches
+                {"type": "holding", "start": 1038, "count": 1, "keys": ["mode_summerwinter"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 1350, "count": 2, "keys": ["fan_running", "cooldown"], "scales": [1, 1], "bool": True},
+                {"type": "holding", "start": 14003, "count": 1, "keys": ["damper_state"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 2146, "count": 1, "keys": ["humidity_return"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 2203, "count": 1, "keys": ["humidity_transfer_enabled"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 2133, "count": 1, "keys": ["cooling_recovery"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 2504, "count": 1, "keys": ["eco_modus"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 3001, "count": 1, "keys": ["heater_switch"], "scales": [1], "bool": True},
+                # Alarms (batched where possible)
+                {"type": "holding", "start": 15001, "count": 1, "keys": ["alarm_saf"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15008, "count": 1, "keys": ["alarm_eaf"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15015, "count": 8, "keys": ["alarm_frost_protect", None, None, None, None, None, None, "alarm_defrosting"], "scales": [1]*8, "bool": True},
+                {"type": "holding", "start": 15029, "count": 1, "keys": ["alarm_saf_rpm"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15036, "count": 1, "keys": ["alarm_eaf_rpm"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15057, "count": 1, "keys": ["alarm_fpt"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15064, "count": 1, "keys": ["alarm_oat"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15071, "count": 1, "keys": ["alarm_sat"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15078, "count": 1, "keys": ["alarm_rat"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15085, "count": 1, "keys": ["alarm_eat"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15092, "count": 1, "keys": ["alarm_ect"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15099, "count": 1, "keys": ["alarm_eft"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15106, "count": 1, "keys": ["alarm_oht"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15113, "count": 1, "keys": ["alarm_emt"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15127, "count": 1, "keys": ["alarm_bys"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15134, "count": 1, "keys": ["alarm_sec_air"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15141, "count": 1, "keys": ["alarm_filter"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15162, "count": 1, "keys": ["alarm_rh"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15176, "count": 1, "keys": ["alarm_low_SAT"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15508, "count": 1, "keys": ["alarm_pdm_rhs"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15515, "count": 1, "keys": ["alarm_pdm_eat"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15522, "count": 1, "keys": ["alarm_man_fan_stop"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15529, "count": 1, "keys": ["alarm_overheat_temp"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15536, "count": 1, "keys": ["alarm_fire"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15543, "count": 1, "keys": ["alarm_filter_warn"], "scales": [1], "bool": True},
+                {"type": "holding", "start": 15900, "count": 3, "keys": ["alarm_typeA", "alarm_typeB", "alarm_typeC"], "scales": [1, 1, 1], "bool": True},
                 # Sensors
-                "test_mode_reg": (1161, "holding", 1),
-                "sensor_flow_piggyback_saf": (12402, "holding", 1),
-                "sensor_flow_piggyback_eaf": (12403, "holding", 1),
-                "temp_outdoor": (12101, "holding", 0.1),
-                "temp_extract": (12543, "holding", 0.1),
-                "temp_overheat": (12107, "holding", 0.1),
-                "humidity": (12135, "holding", 1),
-                "humidity_exhaust": (2210, "holding", 1),
-                "humidity_intake": (2211, "holding", 1),
-                "setpoint_RH_transfer": (2202, "holding", 1),
-                "humidity_return_value": (2200, "holding", 1),
-                "saf_rpm": (12400, "holding", 1),
-                "eaf_rpm": (12401, "holding", 1),
-                "fan_supply": (14000, "holding", 1),
-                "fan_extract": (14001, "holding", 1),
-                "heat_exchanger_state": (14102, "holding", 1),
-                "rotor": (14350, "holding", 1),
-                "heater": (2148, "holding", 1),
-                "filter_replace_month": (7000, "holding", 1),
-                "filter_replace_seconds": (7005, "holding", 1),
-                "setpoint_eco_offset": (2503, "holding", 0.1),
-                "usermode_remain_time": (1110, "holding", 1),
-                "cooling_recovery_temp": (2314, "holding", 1),
-                "temp_exhaust": (12105, "holding", 0.1),
-                "temp_outside": (12102, "holding", 0.1),
-                "rotor_rotation_speed": (14350, "holding", 1),
-                "heater_percentage": (14101, "holding", 1),
-                "supply_fan_speed": (14001, "holding", 1),
-                "extract_fan_speed": (14002, "holding", 1),
-                "filter_pressure": (12115, "holding", 1),
-                "co2_level": (3001, "holding", 1),
-                "sfp_supply": (12201, "holding", 1),
-                "remaining_filter_time": (7005, "holding", 1),
-                "defrost_level": (15022, "holding", 1),
-                "exhaust_humidity": (12136, "holding", 1),
-                "intake_humidity": (12137, "holding", 1),
-                "supply_air_pressure": (12112, "holding", 1),
-                "extract_air_pressure": (12113, "holding", 1),
-                "energy_consumption": (7006, "holding", 1),
-                "heat_recovery_efficiency": (12203, "holding", 1)
-            }
+                {"type": "holding", "start": 1161, "count": 1, "keys": ["test_mode_reg"], "scales": [1]},
+                {"type": "holding", "start": 1110, "count": 1, "keys": ["usermode_remain_time"], "scales": [1]},
+                {"type": "holding", "start": 7000, "count": 1, "keys": ["filter_replace_month"], "scales": [1]},
+                {"type": "holding", "start": 7005, "count": 1, "keys": ["filter_replace_seconds"], "scales": [1]},
+                {"type": "holding", "start": 7006, "count": 1, "keys": ["energy_consumption"], "scales": [1]},
+                {"type": "holding", "start": 12101, "count": 2, "keys": ["temp_outdoor", "temp_supply"], "scales": [0.1, 0.1]},
+                {"type": "holding", "start": 12105, "count": 1, "keys": ["temp_exhaust"], "scales": [0.1]},
+                {"type": "holding", "start": 12107, "count": 1, "keys": ["temp_overheat"], "scales": [0.1]},
+                {"type": "holding", "start": 12112, "count": 2, "keys": ["supply_air_pressure", "extract_air_pressure"], "scales": [1, 1]},
+                {"type": "holding", "start": 12115, "count": 1, "keys": ["filter_pressure"], "scales": [1]},
+                {"type": "holding", "start": 12135, "count": 3, "keys": ["humidity", "exhaust_humidity", "intake_humidity"], "scales": [1, 1, 1]},
+                {"type": "holding", "start": 12201, "count": 1, "keys": ["sfp_supply"], "scales": [1]},
+                {"type": "holding", "start": 12203, "count": 1, "keys": ["heat_recovery_efficiency"], "scales": [1]},
+                {"type": "holding", "start": 12400, "count": 2, "keys": ["saf_rpm", "eaf_rpm"], "scales": [1, 1]},
+                {"type": "holding", "start": 12402, "count": 2, "keys": ["sensor_flow_piggyback_saf", "sensor_flow_piggyback_eaf"], "scales": [1, 1]},
+                {"type": "holding", "start": 14000, "count": 2, "keys": ["fan_supply", "fan_extract"], "scales": [1, 1]},
+                {"type": "holding", "start": 14001, "count": 2, "keys": ["supply_fan_speed", "extract_fan_speed"], "scales": [1, 1]},
+                {"type": "holding", "start": 14101, "count": 1, "keys": ["heater_percentage"], "scales": [1]},
+                {"type": "holding", "start": 14102, "count": 1, "keys": ["heat_exchanger_state"], "scales": [1]},
+                {"type": "holding", "start": 14350, "count": 1, "keys": ["rotor"], "scales": [1]},
+                {"type": "holding", "start": 2148, "count": 1, "keys": ["heater"], "scales": [1]},
+                {"type": "holding", "start": 2200, "count": 3, "keys": ["humidity_return_value", None, "setpoint_RH_transfer"], "scales": [1, 1, 1]},
+                {"type": "holding", "start": 2314, "count": 1, "keys": ["cooling_recovery_temp"], "scales": [1]},
+                {"type": "holding", "start": 2503, "count": 1, "keys": ["setpoint_eco_offset"], "scales": [0.1]},
+                {"type": "holding", "start": 3001, "count": 1, "keys": ["co2_level"], "scales": [1]},
+            ]
 
-            for name, reg_info in registers.items():
-                addr, reg_type, scale = reg_info[0], reg_info[1], reg_info[2]
-                value_type = reg_info[3] if len(reg_info) > 3 else "normal"
+            async def read_with_retry(addr, count, reg_type, max_retries=2):
+                for attempt in range(max_retries):
+                    try:
+                        if reg_type == "holding":
+                            rr = await asyncio.wait_for(
+                                self.client.read_holding_registers(addr, count, slave=SLAVE_ID),
+                                timeout=3.0
+                            )
+                        else:
+                            rr = await asyncio.wait_for(
+                                self.client.read_input_registers(addr, count, slave=SLAVE_ID),
+                                timeout=3.0
+                            )
+                        if rr.isError() or not rr.registers or len(rr.registers) < count:
+                            _LOGGER.warning("Failed to read %s registers at %s (attempt %s/%s)", reg_type, addr, attempt + 1, max_retries)
+                            if attempt + 1 < max_retries:
+                                await asyncio.sleep(0.5)
+                            continue
+                        return rr.registers
+                    except asyncio.TimeoutError:
+                        _LOGGER.warning("Timeout reading %s registers at %s (attempt %s/%s)", reg_type, addr, attempt + 1, max_retries)
+                        if attempt + 1 < max_retries:
+                            await asyncio.sleep(0.5)
+                    except ModbusException as err:
+                        _LOGGER.warning("Modbus error reading %s registers at %s (attempt %s/%s): %s", reg_type, addr, attempt + 1, max_retries, err)
+                        if attempt + 1 < max_retries:
+                            await asyncio.sleep(0.5)
+                    except Exception as err:
+                        _LOGGER.warning("Unexpected error reading %s registers at %s (attempt %s/%s): %s", reg_type, addr, attempt + 1, max_retries, err)
+                        if attempt + 1 < max_retries:
+                            await asyncio.sleep(0.5)
+                return None
 
-                if reg_type == "holding":
-                    rr = await self.client.read_holding_registers(addr, 1, slave=SLAVE_ID)
-                else:
-                    rr = await self.client.read_input_registers(addr, 1, slave=SLAVE_ID)
+            for batch in register_batches:
+                reg_type = batch["type"]
+                addr = batch["start"]
+                count = batch["count"]
+                keys = batch["keys"]
+                scales = batch["scales"]
+                is_bool = batch.get("bool", False)
 
-                if rr.isError():
-                    data[name] = None if value_type != "bool" else False
-                else:
-                    raw = rr.registers[0]
-                    if value_type == "bool":
-                        data[name] = raw > 0
-                    else:
-                        data[name] = raw * scale
+                registers = await read_with_retry(addr, count, reg_type)
+                if registers is None:
+                    for key in keys:
+                        if key:
+                            data[key] = False if is_bool else None
+                    continue
+
+                for i, (key, scale) in enumerate(zip(keys, scales)):
+                    if key and i < len(registers):
+                        try:
+                            raw = registers[i]
+                            data[key] = (raw > 0) if is_bool else (raw * scale)
+                        except (IndexError, TypeError):
+                            _LOGGER.warning("Invalid data for key %s at register %s", key, addr + i)
+                            data[key] = False if is_bool else None
 
             return data
         except ModbusException as err:
-            _LOGGER.error("Modbus error: %s", err)
-            raise UpdateFailed(err)
+            _LOGGER.error("Modbus error during update: %s", err)
+            raise UpdateFailed(f"Modbus error: {err}")
         except Exception as err:
-            _LOGGER.error("Unexpected error: %s", err)
-            raise UpdateFailed(err)
+            _LOGGER.error("Unexpected error during update: %s", err)
+            raise UpdateFailed(f"Unexpected error: {err}")
+        finally:
+            if self.client is not None:
+                try:
+                    await self.client.close()
+                except Exception as err:
+                    _LOGGER.warning("Error closing Modbus client: %s", err)
 
     async def async_write_register(self, address: int, value: int, slave: int = SLAVE_ID) -> bool:
         """Async write single register."""
