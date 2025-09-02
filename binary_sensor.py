@@ -1,14 +1,13 @@
-"""Binary sensor platform for Systemair SAVE VSR."""
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .__init__ import SAVEVSRHub
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     hub: SAVEVSRHub = hass.data[DOMAIN][entry.entry_id]
@@ -20,13 +19,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SAVEVSRBinarySensor(hub, "Mode Summer Winter", "vsr_mode_summerwinter", BinarySensorDeviceClass.HEAT, "mode_summerwinter"),
         SAVEVSRBinarySensor(hub, "Fan Running", "vsr_fan_running", BinarySensorDeviceClass.RUNNING, "fan_running"),
         SAVEVSRBinarySensor(hub, "Cooling Recovery", "vsr_cooling_recovery", BinarySensorDeviceClass.COLD, "cooling_recovery"),
-        # Operational binary sensors only; alarms moved to diagnostics
     ]
     async_add_entities(entities)
 
-
 class SAVEVSRBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """SAVE VSR binary sensor."""
+    _attr_has_entity_name = True  # Recommended for new integrations:contentReference[oaicite:7]{index=7}
 
     def __init__(self, hub: SAVEVSRHub, name: str, unique_id: str, device_class: BinarySensorDeviceClass, key: str) -> None:
         super().__init__(hub.coordinator)
