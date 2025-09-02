@@ -1,7 +1,7 @@
 """Climate platform for Systemair SAVE VSR."""
 from __future__ import annotations
 
-from homeassistant.components.climate import ClimateEntity, HVACMode, ClimateEntityFeature
+from homeassistant.components.climate import ClimateEntity, HVACMode, HVACAction, ClimateEntityFeature
 from homeassistant.const import UnitOfTemperature, ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -53,7 +53,10 @@ class SAVEVSRClimate(CoordinatorEntity[SAVEVSRHub], ClimateEntity):
 
     @property
     def hvac_action(self):
-        return "Ventilation" if self.hvac_mode != HVACMode.OFF else "Idle"
+        # Use Home Assistant's HVACAction enum
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        return HVACAction.FAN
 
     async def async_set_hvac_mode(self, hvac_mode: str):
         value: int | None = None
@@ -111,13 +114,13 @@ class SAVEVSRClimate(CoordinatorEntity[SAVEVSRHub], ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str):
         mapping = {
-            "crowded": 3,
-            "refresh": 4,
-            "fireplace": 5,
-            "away": 6,
-            "holiday": 7,
-            "kitchen": 8,
-            "vacuum_cleaner": 9,
+            "crowded": 2,
+            "refresh": 3,
+            "fireplace": 4,
+            "away": 5,
+            "holiday": 6,
+            "kitchen": 7,
+            "vacuum_cleaner": 8,
         }
         value = mapping.get(preset_mode)
         if value is None:
