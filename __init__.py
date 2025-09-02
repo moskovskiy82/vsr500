@@ -139,8 +139,7 @@ class SAVEVSRHub:
                 {"type": "holding", "start": 1038, "count": 1, "keys": ["mode_summerwinter"], "scales": [1], "bool": True},
                 {"type": "holding", "start": 1350, "count": 2, "keys": ["fan_running", "cooldown"], "scales": [1, 1], "bool": True},
                 {"type": "holding", "start": 14003, "count": 1, "keys": ["damper_state"], "scales": [1], "bool": True},
-                {"type": "holding", "start": 2146, "count": 1, "keys": ["humidity_return"], "scales": [1], "bool": True},
-                {"type": "holding", "start": 2203, "count": 1, "keys": ["humidity_transfer_enabled"], "scales": [1], "bool": True},
+
                 {"type": "holding", "start": 2133, "count": 1, "keys": ["cooling_recovery"], "scales": [1], "bool": True},
                 {"type": "holding", "start": 2504, "count": 1, "keys": ["eco_modus"], "scales": [1], "bool": True},
                 {"type": "holding", "start": 3001, "count": 1, "keys": ["heater_switch"], "scales": [1], "bool": True},
@@ -172,31 +171,34 @@ class SAVEVSRHub:
                 {"type": "holding", "start": 15543, "count": 1, "keys": ["alarm_filter_warn"], "scales": [1], "bool": True},
                 {"type": "holding", "start": 15900, "count": 3, "keys": ["alarm_typeA", "alarm_typeB", "alarm_typeC"], "scales": [1, 1, 1], "bool": True},
                 # Sensors
-                {"type": "holding", "start": 1161, "count": 1, "keys": ["test_mode_reg"], "scales": [1]},
+
                 {"type": "holding", "start": 1110, "count": 1, "keys": ["usermode_remain_time"], "scales": [1]},
-                {"type": "holding", "start": 7000, "count": 1, "keys": ["filter_replace_month"], "scales": [1]},
+
                 {"type": "holding", "start": 7005, "count": 1, "keys": ["filter_replace_seconds"], "scales": [1]},
-                {"type": "holding", "start": 7006, "count": 1, "keys": ["energy_consumption"], "scales": [1]},
+
                 {"type": "holding", "start": 12101, "count": 2, "keys": ["temp_outdoor", "temp_supply"], "scales": [0.1, 0.1]},
                 {"type": "holding", "start": 12105, "count": 1, "keys": ["temp_exhaust"], "scales": [0.1]},
+                {"type": "holding", "start": 12542, "count": 1, "keys": ["temp_extract"], "scales": [0.1]},
+
                 {"type": "holding", "start": 12107, "count": 1, "keys": ["temp_overheat"], "scales": [0.1]},
                 {"type": "holding", "start": 12112, "count": 2, "keys": ["supply_air_pressure", "extract_air_pressure"], "scales": [1, 1]},
-                {"type": "holding", "start": 12115, "count": 1, "keys": ["filter_pressure"], "scales": [1]},
-                {"type": "holding", "start": 12135, "count": 3, "keys": ["humidity", "exhaust_humidity", "intake_humidity"], "scales": [1, 1, 1]},
+
+
                 {"type": "holding", "start": 12201, "count": 1, "keys": ["sfp_supply"], "scales": [1]},
                 {"type": "holding", "start": 12203, "count": 1, "keys": ["heat_recovery_efficiency"], "scales": [1]},
                 {"type": "holding", "start": 12400, "count": 2, "keys": ["saf_rpm", "eaf_rpm"], "scales": [1, 1]},
-                {"type": "holding", "start": 12402, "count": 2, "keys": ["sensor_flow_piggyback_saf", "sensor_flow_piggyback_eaf"], "scales": [1, 1]},
+
                 {"type": "holding", "start": 14000, "count": 2, "keys": ["fan_supply", "fan_extract"], "scales": [1, 1]},
                 {"type": "holding", "start": 14001, "count": 2, "keys": ["supply_fan_speed", "extract_fan_speed"], "scales": [1, 1]},
                 {"type": "holding", "start": 14101, "count": 1, "keys": ["heater_percentage"], "scales": [1]},
                 {"type": "holding", "start": 14102, "count": 1, "keys": ["heat_exchanger_state"], "scales": [1]},
                 {"type": "holding", "start": 14350, "count": 1, "keys": ["rotor"], "scales": [1]},
                 {"type": "holding", "start": 2148, "count": 1, "keys": ["heater"], "scales": [1]},
-                {"type": "holding", "start": 2200, "count": 3, "keys": ["humidity_return_value", None, "setpoint_RH_transfer"], "scales": [1, 1, 1]},
+
                 {"type": "holding", "start": 2314, "count": 1, "keys": ["cooling_recovery_temp"], "scales": [1]},
                 {"type": "holding", "start": 2503, "count": 1, "keys": ["setpoint_eco_offset"], "scales": [0.1]},
-                {"type": "holding", "start": 3001, "count": 1, "keys": ["co2_level"], "scales": [1]},
+
+
             ]
 
             async def read_with_retry(addr, count, reg_type, max_retries=2):

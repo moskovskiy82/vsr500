@@ -16,7 +16,7 @@ env/
 # Home Assistant / local exports
 secrets.yaml
 vsr.txt
-
+archive.txt
 # Keys
 *.pem
 *.key

@@ -1,7 +1,7 @@
 {
   "domain": "systemair_save_vsr",
   "name": "Systemair SAVE VSR",
-  "version": "0.0.1b0",
+  "version": "0.0.1b1",
   "documentation": "https://example.invalid/systemair_save_vsr",
   "codeowners": ["@yourname"],
   "requirements": ["pymodbus>=3.6.3"],

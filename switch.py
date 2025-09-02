@@ -17,7 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entities = [
         SAVEVSRSwitch(hub, "ECO Mode", "vsr_eco_modus", 2504, 1, 0, "eco_modus"),
         SAVEVSRSwitch(hub, "Heater Switch", "vsr_heater_switch", 3001, 1, 0, "heater_switch"),
-        SAVEVSRSwitch(hub, "RH Switch", "vsr_rh_switch", 2203, 1, 0, "humidity_transfer_enabled"),  # Updated verify_key to match command address
+        # SAVEVSRSwitch(hub, "RH Switch", "vsr_rh_switch", 2203, 1, 0, "humidity_transfer_enabled"),  # Updated verify_key to match command address
     ]
     async_add_entities(entities)
 
